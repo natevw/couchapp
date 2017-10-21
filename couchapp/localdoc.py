@@ -14,9 +14,6 @@ import re
 import urlparse
 import webbrowser
 
-from copy import copy
-from itertools import chain
-
 try:
     import desktopcouch
     try:
@@ -301,53 +298,12 @@ class LocalDoc(object):
         return self._doc
 
     def check_ignore(self, item):
-        '''
-        :param item: the relative path which starts from ``self.docdir``
-
-        Given a path and a ignore list,
-        e.g. ``foo/bar/baz.json`` and ``['bar']``,
-        we will check
-            * ``foo/bar/baz.json`` vs ``bar`` -> False
-            * ``bar/baz.json`` vs ``bar`` -> True, then return
-            * ``baz.json`` vs ``bar`` -> not checked
-        '''
-        item = os.path.normpath(item)
-
         for pattern in self.ignores:
-            # ('/' + item) is for abs path, some duplicated generated but work
-            paths = chain(self._combine_path(item),
-                          self._combine_path('/' +item))
-            matches = (re.match(pattern + '$', i) for i in paths)
-            if any(matches):
-                logger.debug("ignoring %s", item)
-                return True
-        return False
-
-    @classmethod
-    def _combine_path(cls, p):
-        '''
-        >>> tuple(LocalDoc._combine_path('foo/bar/qaz'))
-        ('foo', 'foo/bar', 'foo/bar/qaz', 'bar', 'bar/qaz', 'qaz')
-
-        >>> tuple(LocalDoc._combine_path('/foo/bar/qaz'))
-        ('/foo', '/foo/bar', '/foo/bar/qaz', 'bar', 'bar/qaz', 'qaz')
-        '''
-        ls = util.split_path(p)
-        while ls:
-            for i in cls._combine_dir(copy(ls)):
-                yield i
-            ls.pop(0)
-
-    @staticmethod
-    def _combine_dir(ls):
-        '''
-        >>> tuple(LocalDoc._combine_dir(['foo', 'bar', 'qaz']))
-        ('foo', 'foo/bar', 'foo/bar/qaz')
-        '''
-        ret = tuple()
-        while ls:
-            ret += (ls.pop(0),)
-            yield '/'.join(ret)
+            match = re.search(pattern, item)
+              if match:
+                  logger.debug("ignoring %s", item)
+                  return True
+              return False
 
     def dir_to_fields(self, current_dir=None, depth=0, manifest=None):
         """
